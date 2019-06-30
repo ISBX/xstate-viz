@@ -16,6 +16,8 @@ import {
 import { tracker } from './tracker';
 import { getEdges } from 'xstate/lib/graph';
 import { StyledButton } from './Button';
+import { StateChart } from './StateChart';
+import { string } from 'prop-types';
 
 const StyledChildStates = styled.div`
   padding-top: 0.5rem;
@@ -154,6 +156,14 @@ const StyledStateNode = styled.div`
     display: none;
   }
 
+  &[data-selected='true'] {
+    background: rgba(87, 176, 234, 0.2);
+  }
+
+  &[data-selected='true']:not([data-active]) {
+    --color-node-border: #999;
+  }
+
   &[data-active] {
     --color-node-border: var(--color-primary);
     --color-shadow: var(--color-primary-shadow);
@@ -271,6 +281,10 @@ const StyledEventButton = styled.button`
     outline: none;
   }
 
+  &[data-selected='true'] {
+    background: #000;
+  }
+
   // duration
   &[data-delay]:not([disabled]) {
     &:before {
@@ -353,6 +367,10 @@ const StyledEventDot = styled.div`
     background-color: var(--color-event);
   }
 
+  &[data-selected='true']:before {
+    background: #000;
+  }
+
   &:after {
     content: '';
     position: absolute;
@@ -366,6 +384,7 @@ const StyledEventDot = styled.div`
 `;
 
 interface StateChartNodeProps {
+  stateChart: StateChart;
   stateNode: StateNode;
   current: State<any, any>;
   preview?: State<any, any>;
@@ -378,16 +397,38 @@ interface StateChartNodeProps {
 
 export class StateChartNode extends React.Component<StateChartNodeProps> {
   state = {
-    toggled: true
+    toggled: true,
+    selected: false,
+    selectedEvents: [] as string[]
   };
 
   stateRef = React.createRef<any>();
 
+  constructor(props: Readonly<StateChartNodeProps>) {
+    super(props);
+    // track all stateChartNodes at the stateChart level
+    props.stateChart.stateChartNodes.push(this);
+
+  }
+
   public componentDidUpdate() {
     tracker.update(this.props.stateNode.id, this.stateRef.current);
   }
+
+  public reset() {
+    this.setState({ selectedEvents: [] });
+  }
+
+  public addSelectedEvent(event: string ) {
+    if (!this.state.selectedEvents.includes(event)) {
+      this.state.selectedEvents.push(event);
+      this.setState({ selectedEvent: event });
+    }
+  }
+
   public render(): JSX.Element {
     const {
+      stateChart,
       stateNode,
       current,
       preview,
@@ -414,10 +455,21 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
         data-key={stateNode.key}
         data-id={stateNode.id}
         data-type={dataType}
+        data-selected={this.state.selected && !!stateNode.parent}
         data-active={isActive && stateNode.parent}
         data-preview={isPreview && stateNode.parent}
         data-open={this.state.toggled || undefined}
         ref={this.stateRef}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (stateChart.selected) {
+            stateChart.selected.setState({ selected: false });
+          }
+          this.setState({ selected: true });
+          stateChart.selected = this;
+          console.log('StyledStateNode clicked', this);
+        }} 
+
         // data-open={true}
       >
         <StyledStateNodeHeader
@@ -499,12 +551,14 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
                 key={serializeEdge(edge)}
               >
                 <StyledEventButton
-                  onClick={() =>
-                    !isBuiltInEvent ? onEvent(ownEvent) : undefined
-                  }
+                  onClick={() => {
+                    this.addSelectedEvent(ownEvent);
+                    return onEvent(ownEvent);
+                  }}
                   onMouseOver={() => onPreEvent(ownEvent)}
                   onMouseOut={() => onExitPreEvent()}
                   disabled={disabled}
+                  data-selected={this.state.selectedEvents.includes(ownEvent)}
                   data-delay={
                     (edge.transition as DelayedTransitionDefinition<any, any>)
                       .delay
@@ -514,7 +568,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
                   title={ownEvent}
                 >
                   <span>{friendlyEventName(ownEvent)}</span>
-                  <StyledEventDot />
+                  <StyledEventDot data-selected={this.state.selectedEvents.includes(ownEvent)} />
                 </StyledEventButton>
 
                 {!!(edge.transition.actions.length || edge.transition.cond) && (
@@ -549,6 +603,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
 
               return (
                 <StateChartNode
+                  stateChart={stateChart}
                   stateNode={childStateNode}
                   current={current}
                   preview={preview}

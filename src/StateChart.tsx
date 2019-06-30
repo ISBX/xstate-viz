@@ -10,6 +10,7 @@ import {
   assign
 } from 'xstate';
 import * as XState from 'xstate';
+import { Edge as XStateEdge } from 'xstate';
 import { getEdges } from 'xstate/lib/graph';
 import { StateChartNode } from './StateChartNode';
 
@@ -18,6 +19,7 @@ import { Edge } from './Edge';
 import { tracker } from './tracker';
 import { Editor } from './Editor';
 import { InitialEdge } from './InitialEdge';
+import { toStatePaths } from 'xstate/lib/utils';
 
 const StyledViewTab = styled.li`
   padding: 0 1rem;
@@ -131,6 +133,7 @@ interface StateChartState {
   current: State<any, any>;
   preview?: State<any, any>;
   previewEvent?: string;
+  history: StateChartNode[];
   view: string; //"definition" | "state";
   code: string;
   toggledStates: Record<string, boolean>;
@@ -193,6 +196,8 @@ export class StateChart extends React.Component<
   StateChartProps,
   StateChartState
 > {
+  selected?: StateChartNode;
+  stateChartNodes: StateChartNode[] = [];
   state: StateChartState = (() => {
     const machine = toMachine(this.props.machine);
     // const machine = this.props.machine;
@@ -201,6 +206,7 @@ export class StateChart extends React.Component<
       current: machine.initialState,
       preview: undefined,
       previewEvent: undefined,
+      history: [],
       view: 'definition', // or 'state'
       machine: machine,
       code:
@@ -208,20 +214,36 @@ export class StateChart extends React.Component<
           ? this.props.machine
           : `Machine(${JSON.stringify(machine.config, null, 2)})`,
       toggledStates: {},
-      service: interpret(machine, {}).onTransition(current => {
+      service: interpret(machine, {}).onTransition((current) => {
+        this.trackTransitionHistory(current);
         this.setState({ current }, () => {
           if (this.state.previewEvent) {
             this.setState({
               preview: this.state.service.nextState(this.state.previewEvent)
             });
           }
-        });
-      })
+        });  
+    })
     };
   })();
   svgRef = React.createRef<SVGSVGElement>();
   componentDidMount() {
     this.state.service.start();
+  }
+  trackTransitionHistory(transitionState: State<any, any>) {
+    for (const stateChartNode of this.stateChartNodes) {
+      const stateValue = stateChartNode.props.stateNode.path.join('.');
+      // add parent and child states to history
+      if (transitionState.history && transitionState.history.matches(stateValue)) {
+        // built-in events need to be manually set to identify the transition
+        stateChartNode.addSelectedEvent(transitionState.event.type);
+        if (!this.state.history.includes(stateChartNode)) {
+          // only add the stateChartNode to history once
+          this.state.history.push(stateChartNode);
+          this.setState({ history: this.state.history });    
+        }
+      }
+    }
   }
   renderView() {
     const { view, current, machine, code } = this.state;
@@ -306,17 +328,20 @@ export class StateChart extends React.Component<
   }
   reset(code = this.state.code, machine = this.state.machine) {
     this.state.service.stop();
+    this.stateChartNodes.forEach(stateChartNode => stateChartNode.reset());
     this.setState(
       {
         code,
         machine,
-        current: machine.initialState
+        current: machine.initialState,
+        history: []
       },
       () => {
         this.setState(
           {
             service: interpret(this.state.machine)
               .onTransition(current => {
+                this.trackTransitionHistory(current);
                 this.setState({ current }, () => {
                   if (this.state.previewEvent) {
                     this.setState({
@@ -335,6 +360,16 @@ export class StateChart extends React.Component<
         );
       }
     );
+  }
+  isEdgeSelected(edge: XStateEdge<any, any, any>): boolean {
+    for (const stateChartNode of this.state.history) {
+      const event = edge.event && edge.event.type ? edge.event.type : edge.event;
+      if (edge.source.id === stateChartNode.props.stateNode.id && 
+        stateChartNode.state.selectedEvents.includes(event)) {
+          return true;
+      }
+    }
+    return false;
   }
   render() {
     const { current, preview, previewEvent, machine, code } = this.state;
@@ -357,7 +392,6 @@ export class StateChart extends React.Component<
         });
       });
     });
-
     return (
       <StyledStateChart
         className={this.props.className}
@@ -383,6 +417,7 @@ export class StateChart extends React.Component<
       >
         <StyledVisualization>
           <StateChartNode
+            stateChart={this}
             stateNode={this.state.machine}
             current={current}
             preview={preview}
@@ -437,6 +472,17 @@ export class StateChart extends React.Component<
               >
                 <path d="M0,0 L0,4 L4,2 z" fill="gray" />
               </marker>
+              <marker
+                id="marker-selected"
+                markerWidth="4"
+                markerHeight="4"
+                refX="2"
+                refY="2"
+                markerUnits="strokeWidth"
+                orient="auto"
+              >
+                <path d="M0,0 L0,4 L4,2 z" fill="black" />
+              </marker>
             </defs>
             {edges.map(edge => {
               if (!this.svgRef.current) {
@@ -450,6 +496,7 @@ export class StateChart extends React.Component<
                   key={serializeEdge(edge)}
                   svg={this.svgRef.current}
                   edge={edge}
+                  selected={this.isEdgeSelected(edge)}
                   preview={
                     edge.event === previewEvent &&
                     current.matches(edge.source.path.join('.')) &&

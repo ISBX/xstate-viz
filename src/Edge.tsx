@@ -6,6 +6,7 @@ import { tracker, TrackerData } from "./tracker";
 interface EdgeProps {
   edge: XState.Edge<any, any>;
   preview: boolean;
+  selected: boolean;
   svg: SVGSVGElement;
 }
 
@@ -234,15 +235,15 @@ export class Edge extends Component<EdgeProps, EdgeState> {
     }, "");
 
     const isHighlighted = this.props.preview;
-
+    const isSelected = this.props.selected;
     return (
       <g>
         <path
           d={path}
-          stroke={isHighlighted ? "gray" : "var(--color-edge)"}
+          stroke={isSelected ? 'black' : isHighlighted ? "gray" : "var(--color-edge)"}
           strokeWidth={strokeWidth}
           fill="none"
-          markerEnd={isHighlighted ? `url(#marker-preview)` : `url(#marker)`}
+          markerEnd={isSelected ? 'url(#marker-selected)' : isHighlighted ? `url(#marker-preview)` : `url(#marker)`}
           ref={this.ref}
         />
       </g>
