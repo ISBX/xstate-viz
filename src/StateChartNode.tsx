@@ -157,11 +157,11 @@ const StyledStateNode = styled.div`
   }
 
   &[data-selected='true'] {
-    background: rgba(87, 176, 234, 0.2);
+    background: var(--color-primary-selected);
   }
 
   &[data-selected='true']:not([data-active]) {
-    --color-node-border: #999;
+    --color-node-border: var(--color-border-selected);
   }
 
   &[data-active] {
@@ -282,7 +282,7 @@ const StyledEventButton = styled.button`
   }
 
   &[data-selected='true'] {
-    background: #000;
+    background: black;
   }
 
   // duration
@@ -368,7 +368,7 @@ const StyledEventDot = styled.div`
   }
 
   &[data-selected='true']:before {
-    background: #000;
+    background: black;
   }
 
   &:after {
@@ -392,6 +392,7 @@ interface StateChartNodeProps {
   onPreEvent: (event: string) => void;
   onExitPreEvent: () => void;
   onReset?: () => void;
+  onSelectionChange?: (stateChartNode: StateChartNode) => void;
   toggledStates: Record<string, boolean>;
 }
 
@@ -435,7 +436,8 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
       onEvent,
       onPreEvent,
       onExitPreEvent,
-      onReset
+      onReset,
+      onSelectionChange
     } = this.props;
     const isActive =
       !stateNode.parent ||
@@ -462,14 +464,10 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
         ref={this.stateRef}
         onClick={(e) => {
           e.stopPropagation();
-          if (stateChart.selected) {
-            stateChart.selected.setState({ selected: false });
+          if (onSelectionChange) {
+            onSelectionChange(this);
           }
-          this.setState({ selected: true });
-          stateChart.selected = this;
-          console.log('StyledStateNode clicked', this);
         }} 
-
         // data-open={true}
       >
         <StyledStateNodeHeader
@@ -551,7 +549,8 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
                 key={serializeEdge(edge)}
               >
                 <StyledEventButton
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     this.addSelectedEvent(ownEvent);
                     return onEvent(ownEvent);
                   }}
@@ -608,6 +607,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
                   current={current}
                   preview={preview}
                   key={childStateNode.id}
+                  onSelectionChange={onSelectionChange}
                   onEvent={onEvent}
                   onPreEvent={onPreEvent}
                   onExitPreEvent={onExitPreEvent}

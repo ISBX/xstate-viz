@@ -126,6 +126,7 @@ interface StateChartProps {
   className?: string;
   machine: StateNode<any> | string;
   height?: number | string;
+  onSelectionChange?: (stateChartNode: StateChartNode) => void;
 }
 
 interface StateChartState {
@@ -361,6 +362,19 @@ export class StateChart extends React.Component<
       }
     );
   }
+  onSelectionChange(stateChartNode: StateChartNode) {
+    if (this.selected) {
+      // unselect previous state
+      this.selected.setState({ selected: false });
+    }
+    // set the current selected state
+    stateChartNode.setState({ selected: true });
+    this.selected = stateChartNode;
+    // notify a start chart was selected
+    if (this.props.onSelectionChange) {
+      this.props.onSelectionChange(stateChartNode);
+    }
+  }
   isEdgeSelected(edge: XStateEdge<any, any, any>): boolean {
     for (const stateChartNode of this.state.history) {
       const event = edge.event && edge.event.type ? edge.event.type : edge.event;
@@ -402,9 +416,11 @@ export class StateChart extends React.Component<
           // @ts-ignore
           '--color-app-background': '#FFF',
           '--color-border': '#dedede',
+          '--color-border-selected': '#999',
           '--color-primary': 'rgba(87, 176, 234, 1)',
           '--color-primary-faded': 'rgba(87, 176, 234, 0.5)',
           '--color-primary-shadow': 'rgba(87, 176, 234, 0.1)',
+          '--color-primary-selected': 'rgba(87, 176, 234, 0.2)',
           '--color-link': 'rgba(87, 176, 234, 1)',
           '--color-disabled': '#c7c5c5',
           '--color-edge': 'rgba(0, 0, 0, 0.2)',
@@ -422,6 +438,7 @@ export class StateChart extends React.Component<
             current={current}
             preview={preview}
             onReset={this.reset.bind(this)}
+            onSelectionChange={this.onSelectionChange.bind(this)}
             onEvent={this.state.service.send.bind(this)}
             onPreEvent={event =>
               this.setState({
