@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { interpret, SimulatedClock, Interpreter } from 'xstate/lib/interpreter';
+import { interpret, Interpreter } from 'xstate/lib/interpreter';
 import {
   Machine as _Machine,
   StateNode,
@@ -87,6 +87,9 @@ const StyledStateChart = styled.div`
     max-height: inherit;
     overflow-y: auto;
   }
+  &.chart-only {
+    display: block;
+  }
 `;
 
 const StyledField = styled.div`
@@ -122,10 +125,17 @@ function Field({ label, children, disabled, style }: FieldProps) {
   );
 }
 
+export enum StateChartViewType {
+  ChartOnly ='chart-only',
+  Definition = 'definition',
+  State = 'state'
+}
+
 interface StateChartProps {
   className?: string;
   machine: StateNode<any> | string;
   height?: number | string;
+  view?: StateChartViewType;
   onSelectionChange?: (stateChartNode: StateChartNode) => void;
 }
 
@@ -135,7 +145,7 @@ interface StateChartState {
   preview?: State<any, any>;
   previewEvent?: string;
   history: StateChartNode[];
-  view: string; //"definition" | "state";
+  view: StateChartViewType;
   code: string;
   toggledStates: Record<string, boolean>;
   service: Interpreter<any>;
@@ -208,7 +218,7 @@ export class StateChart extends React.Component<
       preview: undefined,
       previewEvent: undefined,
       history: [],
-      view: 'definition', // or 'state'
+      view: this.props.view || StateChartViewType.Definition,
       machine: machine,
       code:
         typeof this.props.machine === 'string'
@@ -408,7 +418,7 @@ export class StateChart extends React.Component<
     });
     return (
       <StyledStateChart
-        className={this.props.className}
+        className={[this.props.className, this.state.view].join(' ')}
         key={code}
         style={{
           height: this.props.height || '100%',
@@ -545,22 +555,24 @@ export class StateChart extends React.Component<
             })}
           </svg>
         </StyledVisualization>
-        <StyledSidebar>
-          <StyledViewTabs>
-            {['definition', 'state'].map(view => {
-              return (
-                <StyledViewTab
-                  onClick={() => this.setState({ view })}
-                  key={view}
-                  data-active={this.state.view === view || undefined}
-                >
-                  {view}
-                </StyledViewTab>
-              );
-            })}
-          </StyledViewTabs>
-          <StyledView>{this.renderView()}</StyledView>
-        </StyledSidebar>
+        {this.state.view !== StateChartViewType.ChartOnly && 
+          <StyledSidebar>
+            <StyledViewTabs>
+              {[StateChartViewType.Definition, StateChartViewType.State].map(view => {
+                return (
+                  <StyledViewTab
+                    onClick={() => this.setState({ view })}
+                    key={view}
+                    data-active={this.state.view === view || undefined}
+                  >
+                    {view}
+                  </StyledViewTab>
+                );
+              })}
+            </StyledViewTabs>
+            <StyledView>{this.renderView()}</StyledView>
+          </StyledSidebar>
+        } 
       </StyledStateChart>
     );
   }

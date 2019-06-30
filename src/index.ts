@@ -1,3 +1,3 @@
-import { StateChart } from "./StateChart";
+import { StateChart, StateChartViewType } from "./StateChart";
 
-export { StateChart };
+export { StateChart, StateChartViewType };
