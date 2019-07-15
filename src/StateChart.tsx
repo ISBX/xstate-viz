@@ -372,7 +372,23 @@ export class StateChart extends React.Component<
       }
     );
   }
-  onSelectionChange(stateChartNode: StateChartNode) {
+  selectStateNodePath(path: string[]) {
+    for (const stateChartNode of this.stateChartNodes) {
+      let index = 0;
+      for (const part of path) {
+        // attempt to match all path parts
+        if (stateChartNode.props.stateNode.path[index] !== part) {
+          break; // not a match
+        } else if (index === path.length - 1) {
+          // found the stateChartNode to select
+          this.changeSelection(stateChartNode);
+          return;
+        }
+        index++;
+      }
+    }
+  }
+  changeSelection(stateChartNode: StateChartNode) {
     if (this.selected) {
       // unselect previous state
       this.selected.setState({ selected: false });
@@ -380,6 +396,9 @@ export class StateChart extends React.Component<
     // set the current selected state
     stateChartNode.setState({ selected: true });
     this.selected = stateChartNode;
+  }
+  onSelectionChange(stateChartNode: StateChartNode) {
+    this.changeSelection(stateChartNode);
     // notify a start chart was selected
     if (this.props.onSelectionChange) {
       this.props.onSelectionChange(stateChartNode);
