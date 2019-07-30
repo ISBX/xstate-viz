@@ -12,7 +12,7 @@ import {
 import * as XState from 'xstate';
 import { Edge as XStateEdge } from 'xstate';
 import { getEdges } from 'xstate/lib/graph';
-import { StateChartNode } from './StateChartNode';
+import { StateChartNode, StateChartNodeEvent } from './StateChartNode';
 
 import { serializeEdge, isHidden, initialStateNodes } from './utils';
 import { Edge } from './Edge';
@@ -137,6 +137,8 @@ interface StateChartProps {
   height?: number | string;
   view?: StateChartViewType;
   onSelectionChange?: (stateChartNode: StateChartNode) => void;
+  onEvent?: (stateChartNodeEvent: StateChartNodeEvent) => void;
+  onTransition?: (state: State<any, XState.OmniEventObject<EventObject>>) => void;
 }
 
 interface StateChartState {
@@ -233,7 +235,10 @@ export class StateChart extends React.Component<
               preview: this.state.service.nextState(this.state.previewEvent)
             });
           }
-        });  
+        });
+        if (this.props.onTransition) {
+          this.props.onTransition(current);          
+        }
     })
     };
   })();
@@ -404,6 +409,11 @@ export class StateChart extends React.Component<
       this.props.onSelectionChange(stateChartNode);
     }
   }
+  onEvent(stateChartNodeEvent: StateChartNodeEvent) {
+    if (this.props.onEvent) {
+      this.props.onEvent(stateChartNodeEvent);
+    }
+  }
   isEdgeSelected(edge: XStateEdge<any, any, any>): boolean {
     for (const stateChartNode of this.state.history) {
       const event = edge.event && edge.event.type ? edge.event.type : edge.event;
@@ -468,7 +478,10 @@ export class StateChart extends React.Component<
             preview={preview}
             onReset={this.reset.bind(this)}
             onSelectionChange={this.onSelectionChange.bind(this)}
-            onEvent={this.state.service.send.bind(this)}
+            onEvent={stateChartNodeEvent => {
+              this.state.service.send(stateChartNodeEvent.event);
+              this.onEvent(stateChartNodeEvent);
+            }}
             onPreEvent={event =>
               this.setState({
                 preview: this.state.service.nextState(event),

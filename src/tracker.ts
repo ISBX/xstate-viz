@@ -70,6 +70,10 @@ class Tracker {
     this.notify(data);
   }
 
+  remove(id: string) {
+    this.elements.delete(id);
+  }
+
   get(id: string): TrackerData | undefined {
     if (this.elements.get(id)) {
       return this.elements.get(id);

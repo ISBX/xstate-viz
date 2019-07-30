@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { RefObject } from 'react';
 import {
   Machine as _Machine,
   StateNode,
@@ -383,12 +383,19 @@ const StyledEventDot = styled.div`
   }
 `;
 
+export interface StateChartNodeEvent {
+  stateChartNode: StateChartNode;
+  event: string;
+}
+
+
 interface StateChartNodeProps {
   stateChart: StateChart;
+  parent?: StateChartNode;
   stateNode: StateNode;
   current: State<any, any>;
   preview?: State<any, any>;
-  onEvent: (event: string) => void;
+  onEvent: (stateChartNodeEvent: StateChartNodeEvent) => void;
   onPreEvent: (event: string) => void;
   onExitPreEvent: () => void;
   onReset?: () => void;
@@ -403,10 +410,15 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
     selectedEvents: [] as string[]
   };
 
+  parent?: StateChartNode;
+  childrenRef: RefObject<StateChartNode>[] = [];
+
   stateRef = React.createRef<any>();
 
   constructor(props: Readonly<StateChartNodeProps>) {
     super(props);
+    this.parent = props.parent;
+
     // track all stateChartNodes at the stateChart level
     props.stateChart.stateChartNodes.push(this);
 
@@ -415,7 +427,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
   public componentDidUpdate() {
     tracker.update(this.props.stateNode.id, this.stateRef.current);
   }
-
+  
   public reset() {
     this.setState({ selectedEvents: [] });
   }
@@ -430,6 +442,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
   public render(): JSX.Element {
     const {
       stateChart,
+      parent,
       stateNode,
       current,
       preview,
@@ -450,6 +463,13 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
     const dataType = stateNode.parent
       ? stateNode.type
       : `machine ${stateNode.type}`;
+
+    this.parent = parent;
+    this.childrenRef = [];
+    Object.keys(stateNode.states || []).map(() => {
+      const childRef = React.createRef<StateChartNode>();
+      this.childrenRef.push(childRef);
+    });
 
     return (
       <StyledStateNode
@@ -552,7 +572,10 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
                   onClick={(e) => {
                     e.stopPropagation();
                     this.addSelectedEvent(ownEvent);
-                    return onEvent(ownEvent);
+                    return onEvent({
+                      stateChartNode: this,
+                      event: ownEvent
+                    });
                   }}
                   onMouseOver={() => onPreEvent(ownEvent)}
                   onMouseOut={() => onExitPreEvent()}
@@ -570,7 +593,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
                   <StyledEventDot data-selected={this.state.selectedEvents.includes(ownEvent)} />
                 </StyledEventButton>
 
-                {!!(edge.transition.actions.length || edge.transition.cond) && (
+                {!!((edge.transition.actions && edge.transition.actions.length) || edge.transition.cond) && (
                   <StyledStateNodeActions>
                     {edge.transition.cond && (
                       <StyledStateNodeAction data-guard>
@@ -597,12 +620,13 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
         </StyledEvents>
         {Object.keys(stateNode.states).length ? (
           <StyledChildStates>
-            {Object.keys(stateNode.states || []).map(key => {
+            {Object.keys(stateNode.states || []).map((key, index) => {
               const childStateNode = stateNode.states[key];
-
               return (
                 <StateChartNode
+                  ref={this.childrenRef[index]}
                   stateChart={stateChart}
+                  parent={this}
                   stateNode={childStateNode}
                   current={current}
                   preview={preview}

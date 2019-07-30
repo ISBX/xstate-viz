@@ -67,6 +67,13 @@ export class Edge extends Component<EdgeProps, EdgeState> {
       this.setState({ targetData: parentData || undefined });
     });
   }
+  componentWillUnmount() {
+    const { edge } = this.props;
+    const eventId = serializeEdge(edge);
+    tracker.remove(eventId);
+    tracker.remove(edge.source.id);
+    tracker.remove(edge.target.id);
+  }
   render() {
     const { edge } = this.props;
     const { sourceData, eventData, targetData } = this.state;
