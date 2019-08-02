@@ -28,6 +28,9 @@ const StyledChildStates = styled.div`
   flex-wrap: wrap;
   align-items: flex-start;
   min-height: 1rem;
+  &.root-no-header {
+    border-top: none;
+  }
 `;
 
 const StyledChildStatesToggle = styled.button`
@@ -395,6 +398,7 @@ interface StateChartNodeProps {
   stateNode: StateNode;
   current: State<any, any>;
   preview?: State<any, any>;
+  hideRootHeader?: boolean;
   onEvent: (stateChartNodeEvent: StateChartNodeEvent) => void;
   onPreEvent: (event: string) => void;
   onExitPreEvent: () => void;
@@ -446,6 +450,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
       stateNode,
       current,
       preview,
+      hideRootHeader,
       onEvent,
       onPreEvent,
       onExitPreEvent,
@@ -490,22 +495,24 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
         }} 
         // data-open={true}
       >
-        <StyledStateNodeHeader
-          style={{
-            // @ts-ignore
-            '--depth': stateNode.path.length
-          }}
-        >
-          <strong>{stateNode.key}</strong>
-          {stateNode.path.length === 0 ? (
-            <StyledButton
-              data-variant="reset"
-              onClick={onReset ? () => onReset() : undefined}
-            >
-              Reset
-            </StyledButton>
-          ) : null}
-        </StyledStateNodeHeader>
+        {!hideRootHeader ? (
+          <StyledStateNodeHeader
+            style={{
+              // @ts-ignore
+              '--depth': stateNode.path.length
+            }}
+          >
+            <strong>{stateNode.key}</strong>
+            {stateNode.path.length === 0 ? (
+              <StyledButton
+                data-variant="reset"
+                onClick={onReset ? () => onReset() : undefined}
+              >
+                Reset
+              </StyledButton>
+            ) : null}
+          </StyledStateNodeHeader>
+        ) : null}
         {!!stateActions(stateNode).length && (
           <StyledStateNodeActions>
             {stateNode.definition.onEntry.map(action => {
@@ -619,7 +626,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
           })}
         </StyledEvents>
         {Object.keys(stateNode.states).length ? (
-          <StyledChildStates>
+          <StyledChildStates className={!stateNode.parent && hideRootHeader ? 'root-no-header' : ''}>
             {Object.keys(stateNode.states || []).map((key, index) => {
               const childStateNode = stateNode.states[key];
               return (

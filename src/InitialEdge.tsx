@@ -26,6 +26,10 @@ export class InitialEdge extends React.Component<
       this.setState({ sourceElement: data.element });
     });
   }
+  componentWillUnmount() {
+    const { id } = this.props.source;
+    tracker.remove(id);
+  }
   render() {
     const { svgRef, preview } = this.props;
 

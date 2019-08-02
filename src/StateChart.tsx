@@ -136,6 +136,7 @@ interface StateChartProps {
   machine: StateNode<any> | string;
   height?: number | string;
   view?: StateChartViewType;
+  hideRootHeader?: boolean;
   onSelectionChange?: (stateChartNode: StateChartNode) => void;
   onEvent?: (stateChartNodeEvent: StateChartNodeEvent) => void;
   onTransition?: (state: State<any, XState.OmniEventObject<EventObject>>) => void;
@@ -146,6 +147,7 @@ interface StateChartState {
   current: State<any, any>;
   preview?: State<any, any>;
   previewEvent?: string;
+  hideRootHeader?: boolean;
   history: StateChartNode[];
   view: StateChartViewType;
   code: string;
@@ -219,6 +221,7 @@ export class StateChart extends React.Component<
       current: machine.initialState,
       preview: undefined,
       previewEvent: undefined,
+      hideRootHeader: this.props.hideRootHeader,
       history: [],
       view: this.props.view || StateChartViewType.Definition,
       machine: machine,
@@ -425,7 +428,7 @@ export class StateChart extends React.Component<
     return false;
   }
   render() {
-    const { current, preview, previewEvent, machine, code } = this.state;
+    const { current, preview, previewEvent, machine, code, hideRootHeader } = this.state;
 
     const edges = getEdges(machine);
 
@@ -473,9 +476,10 @@ export class StateChart extends React.Component<
         <StyledVisualization>
           <StateChartNode
             stateChart={this}
-            stateNode={this.state.machine}
+            stateNode={machine}
             current={current}
             preview={preview}
+            hideRootHeader={hideRootHeader}
             onReset={this.reset.bind(this)}
             onSelectionChange={this.onSelectionChange.bind(this)}
             onEvent={stateChartNodeEvent => {
