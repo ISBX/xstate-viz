@@ -431,12 +431,20 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
   public componentDidUpdate() {
     tracker.update(this.props.stateNode.id, this.stateRef.current);
   }
+
+  public componentWillUnmount() {
+    const index = this.props.stateChart.stateChartNodes.indexOf(this);
+    this.props.stateChart.stateChartNodes.splice(index, 1);
+    if (this.props.stateChart.selected === this) {
+      this.props.stateChart.selected = undefined;
+    }
+  }
   
   public reset() {
     this.setState({ selectedEvents: [] });
   }
 
-  public addSelectedEvent(event: string ) {
+  public addSelectedEvent(event: string) {
     if (!this.state.selectedEvents.includes(event)) {
       this.state.selectedEvents.push(event);
       this.setState({ selectedEvent: event });

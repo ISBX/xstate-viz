@@ -347,7 +347,6 @@ export class StateChart extends React.Component<
   }
   reset(code = this.state.code, machine = this.state.machine) {
     this.state.service.stop();
-    this.stateChartNodes.forEach(stateChartNode => stateChartNode.reset());
     this.setState(
       {
         code,
@@ -356,6 +355,7 @@ export class StateChart extends React.Component<
         history: []
       },
       () => {
+        this.stateChartNodes.forEach(stateChartNode => stateChartNode.reset());
         this.setState(
           {
             service: interpret(this.state.machine)
