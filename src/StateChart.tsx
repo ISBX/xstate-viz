@@ -16,10 +16,10 @@ import { StateChartNode, StateChartNodeEvent } from './StateChartNode';
 
 import { serializeEdge, isHidden, initialStateNodes } from './utils';
 import { Edge } from './Edge';
-import { tracker } from './tracker';
 import { Editor } from './Editor';
 import { InitialEdge } from './InitialEdge';
 import { toStatePaths } from 'xstate/lib/utils';
+import ResizeObserver from 'resize-observer-polyfill';
 
 const StyledViewTab = styled.li`
   padding: 0 1rem;
@@ -245,7 +245,13 @@ export class StateChart extends React.Component<
     })
     };
   })();
+
+  // handle svg resize and redraw edges
+  resizeObserver = new ResizeObserver((entries, observer) => {
+    this.forceUpdate();
+  });
   svgRef = React.createRef<SVGSVGElement>();
+  
   componentDidMount() {
     this.state.service.start();
   }
@@ -448,6 +454,11 @@ export class StateChart extends React.Component<
         });
       });
     });
+
+    if (this.svgRef.current) {
+      this.resizeObserver.observe(this.svgRef.current);
+    }
+    
     return (
       <StyledStateChart
         className={[this.props.className, this.state.view].join(' ')}
