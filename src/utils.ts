@@ -80,7 +80,9 @@ export function getEventDelay(event: string): string | number | false {
 }
 
 export function serializeEdge(edge: Edge<any, any>): string {
-  const cond = edge.cond ? `[${edge.cond.toString().replace(/\n/g, '')}]` : '';
+  // PREVIOUS: const cond = edge.cond ? `[${edge.cond.toString().replace(/\n/g, '')}]` : '';
+  // NOTE: edge.cond can be an object so use JSON.stringify()
+  const cond = edge.cond ? `[${JSON.stringify(edge.cond)}]` : '';
   return `${edge.source.id}:${edge.event}${cond}->${edge.target.id}`;
 }
 
