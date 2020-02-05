@@ -1,6 +1,6 @@
 {
   "name": "@sierralabs/xstate-viz",
-  "version": "0.2.3",
+  "version": "0.2.5",
   "description": "Visualizer for XState.",
   "main": "lib/index.js",
   "scripts": {
@@ -35,6 +35,6 @@
     "react-dom": "^16.6.0",
     "resize-observer-polyfill": "^1.5.1",
     "styled-components": "^4.0.2",
-    "xstate": "^4.6.3"
+    "xstate": "4.6.7"
   }
 }
