@@ -510,7 +510,7 @@ export class StateChartNode extends React.Component<StateChartNodeProps> {
               '--depth': stateNode.path.length
             }}
           >
-            <strong>{stateNode.meta.isPublished && '🔒'}{stateNode.key}</strong>
+            <strong>{stateNode.meta && stateNode.meta.isPublished && '🔒'}{stateNode.key}</strong>
             {stateNode.path.length === 0 ? (
               <StyledButton
                 data-variant="reset"
